@@ -7,16 +7,9 @@ const cors = require("cors");
 const authRoutes = require('./routes/auth');
 const donationRoutes = require('./routes/donations');
 const ngoRoutes = require('./routes/ngos');
-const paymentRoutes = require('./routes/payment');
 
 // Load environment variables
 dotenv.config();
-
-// Verify Stripe keys are loaded
-if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLIC_KEY) {
-    console.error('Stripe keys are not properly configured in .env file');
-    process.exit(1);
-}
 
 // Create Express app
 const app = express();
@@ -54,7 +47,6 @@ mongoose.connection.on('disconnected', () => {
 app.use('/api/auth', authRoutes);
 app.use('/api/donations', donationRoutes);
 app.use('/api/ngos', ngoRoutes);
-app.use('/api/payment', paymentRoutes);
 
 // Basic route for testing
 app.get("/", (req, res) => {
@@ -77,7 +69,21 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+const startServer = () => {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    }).on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.log(`Port ${PORT} is busy, trying ${PORT + 1}`);
+            setTimeout(() => {
+                app.listen(PORT + 1);
+            }, 1000);
+        }
+    });
+};
+
+startServer();
 
 // Graceful shutdown
 process.on('SIGINT', () => {

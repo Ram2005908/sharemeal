@@ -4,10 +4,8 @@ const auth = require('../middleware/auth');
 const Donation = require('../models/Donation');
 const multer = require('multer');
 const path = require('path');
-const { processPayment } = require('../utils/payment');
 const { sendNotification } = require('../utils/notifications');
 const { checkFileType } = require('../utils/fileUpload');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -65,12 +63,6 @@ router.post('/', auth, upload.array('images', 5), async (req, res) => {
         });
 
         await donation.save();
-
-        // If it's a monetary donation, initiate payment
-        if (donation.type === 'money') {
-            const paymentIntent = await processPayment(donation);
-            return res.json({ donation, paymentIntent });
-        }
 
         res.status(201).json(donation);
     } catch (err) {
@@ -160,48 +152,6 @@ router.patch('/:id/status', auth, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Add this route handler for payment success
-router.post('/payment-success', auth, async (req, res) => {
-    try {
-        const { paymentIntentId, donationId } = req.body;
-
-        // Verify payment with Stripe
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-        
-        if (paymentIntent.status === 'succeeded') {
-            // Update donation status
-            const donation = await Donation.findById(donationId);
-            if (!donation) {
-                return res.status(404).json({ message: 'Donation not found' });
-            }
-
-            donation.paymentStatus = 'completed';
-            donation.paymentDetails = {
-                transactionId: paymentIntentId,
-                amount: paymentIntent.amount / 100,
-                currency: paymentIntent.currency,
-                paymentMethod: 'card',
-                timestamp: new Date()
-            };
-
-            await donation.save();
-
-            // Send notification
-            await sendNotification(donation.donor, {
-                title: 'Payment Successful',
-                message: `Your donation of INR ${donation.amount} has been processed successfully.`
-            });
-
-            res.json({ success: true });
-        } else {
-            res.status(400).json({ message: 'Payment not successful' });
-        }
-    } catch (error) {
-        console.error('Payment verification error:', error);
-        res.status(500).json({ message: 'Error verifying payment' });
     }
 });
 

@@ -8,11 +8,14 @@ const twilioClient = twilio(
     process.env.TWILIO_AUTH_TOKEN
 );
 
+// Generate VAPID keys
+const vapidKeys = webpush.generateVAPIDKeys();
+
 // Configure web push
 webpush.setVapidDetails(
-    'mailto:' + process.env.EMAIL_USER,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY
+    'mailto:your@email.com', // Replace with your email
+    vapidKeys.publicKey,
+    vapidKeys.privateKey
 );
 
 class NotificationService {
@@ -64,18 +67,11 @@ class NotificationService {
     }
 }
 
-const sendNotification = async (userId, notification) => {
+const sendNotification = async (subscription, data) => {
     try {
-        // For now, just log the notification
-        console.log('Notification sent to user:', userId);
-        console.log('Notification content:', notification);
-        
-        // In the future, implement actual notification sending
-        // This could be email, SMS, push notification, etc.
-        return true;
+        await webpush.sendNotification(subscription, JSON.stringify(data));
     } catch (error) {
-        console.error('Notification error:', error);
-        return false;
+        console.error('Error sending notification:', error);
     }
 };
 
