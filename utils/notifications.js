@@ -1,12 +1,12 @@
-const webpush = require('web-push');
-const twilio = require('twilio');
+const twilio = process.env.TWILIO_ACCOUNT_SID ? require('twilio') : null;
+let webpush;
+try {
+    webpush = require('web-push');
+} catch (err) {
+    console.log('Web push notifications not available');
+    webpush = null;
+}
 const User = require('../models/User');
-
-// Initialize Twilio client
-const twilioClient = twilio(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-);
 
 // Generate VAPID keys
 const vapidKeys = webpush.generateVAPIDKeys();
@@ -21,16 +21,16 @@ webpush.setVapidDetails(
 class NotificationService {
     static async sendPaymentNotification(payment, user) {
         try {
-            // Send SMS if phone number exists
-            if (user.phone) {
+            // Send SMS if Twilio is configured
+            if (twilio && user.phone) {
                 await this.sendSMS(
                     user.phone,
-                    `Your donation of ${payment.currency.toUpperCase()} ${payment.amount} has been processed. Receipt: ${process.env.BASE_URL}/track-donation/${payment.donationId}`
+                    `Your donation of ${payment.currency} ${payment.amount} has been processed.`
                 );
             }
 
-            // Send push notification if subscription exists
-            if (user.pushSubscription) {
+            // Send push notification if configured
+            if (webpush && user.pushSubscription) {
                 await this.sendPushNotification(
                     user.pushSubscription,
                     'Donation Successful',
@@ -44,6 +44,16 @@ class NotificationService {
 
     static async sendSMS(to, message) {
         try {
+            if (!twilio) {
+                console.log('SMS would be sent:', { to, message });
+                return;
+            }
+
+            const twilioClient = twilio(
+                process.env.TWILIO_ACCOUNT_SID,
+                process.env.TWILIO_AUTH_TOKEN
+            );
+
             await twilioClient.messages.create({
                 body: message,
                 to,
@@ -56,6 +66,11 @@ class NotificationService {
 
     static async sendPushNotification(subscription, title, body) {
         try {
+            if (!webpush) {
+                console.log('Push notification would be sent:', { title, body });
+                return;
+            }
+
             await webpush.sendNotification(subscription, JSON.stringify({
                 title,
                 body,
@@ -67,9 +82,14 @@ class NotificationService {
     }
 }
 
+// Simple notification function that logs instead of sending if services aren't configured
 const sendNotification = async (subscription, data) => {
     try {
-        await webpush.sendNotification(subscription, JSON.stringify(data));
+        if (webpush) {
+            await webpush.sendNotification(subscription, JSON.stringify(data));
+        } else {
+            console.log('Notification would be sent:', data);
+        }
     } catch (error) {
         console.error('Error sending notification:', error);
     }

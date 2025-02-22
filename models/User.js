@@ -22,26 +22,33 @@ const userSchema = new mongoose.Schema({
         required: [true, 'Please add a password'],
         minlength: [6, 'Password must be at least 6 characters']
     },
-    role: {
-        type: String,
-        enum: ['user', 'ngo'],
-        default: 'user'
-    },
-    location: {
-        type: String,
-        trim: true
-    },
     phone: {
         type: String,
-        trim: true,
+        required: [true, 'Please add a phone number'],
         match: [/^[0-9]{10}$/, 'Please enter a valid phone number']
     },
+    address: {
+        street: String,
+        city: String,
+        state: String,
+        pincode: String
+    },
+    role: {
+        type: String,
+        enum: ['donor', 'ngo', 'admin'],
+        default: 'donor'
+    },
+    donations: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Donation'
+    }],
     isVerified: {
         type: Boolean,
         default: false
     },
-    lastLogin: {
-        type: Date
+    createdAt: {
+        type: Date,
+        default: Date.now
     }
 }, { 
     timestamps: true 

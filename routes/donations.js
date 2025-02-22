@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Donation = require('../models/Donation');
+const User = require('../models/User');
 const multer = require('multer');
 const path = require('path');
 const { sendNotification } = require('../utils/notifications');
@@ -10,147 +11,135 @@ const { checkFileType } = require('../utils/fileUpload');
 // Configure multer for image uploads
 const storage = multer.diskStorage({
     destination: './uploads/',
-    filename: function(req, file, cb) {
-        cb(null, 'food-' + Date.now() + path.extname(file.originalname));
+    filename: (req, file, cb) => {
+        cb(null, `donation-${Date.now()}${path.extname(file.originalname)}`);
     }
 });
 
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 10000000 }, // 10MB limit
-    fileFilter: function(req, file, cb) {
-        checkFileType(file, cb);
+    storage,
+    limits: { fileSize: 5000000 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png/;
+        const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = filetypes.test(file.mimetype);
+        if (mimetype && extname) return cb(null, true);
+        cb(new Error('Only images are allowed'));
     }
 });
 
 // Create new donation
 router.post('/', auth, upload.array('images', 5), async (req, res) => {
     try {
-        const {
-            type,
-            foodType,
-            quantity,
-            unit,
-            expiryDate,
-            pickupLocation,
-            pickupTimeFrom,
-            pickupTimeTo,
-            amount,
-            paymentMethod,
-            description
-        } = req.body;
-        
-        // Handle image uploads
-        const images = req.files ? req.files.map(file => file.path) : [];
-        
         const donation = new Donation({
             donor: req.user.id,
-            type,
-            foodType,
-            quantity,
-            unit,
-            expiryDate,
-            pickupLocation,
-            pickupTimeFrom,
-            pickupTimeTo,
-            amount,
-            paymentMethod,
-            description,
-            foodDetails: {
-                ...req.body,
-                images
-            }
+            type: req.body.type,
+            description: req.body.description
         });
+
+        if (req.body.type === 'food') {
+            donation.foodDetails = {
+                foodType: req.body.foodType,
+                quantity: req.body.quantity,
+                unit: req.body.unit,
+                expiryDate: req.body.expiryDate,
+                pickupLocation: req.body.pickupLocation,
+                pickupTimeFrom: req.body.pickupTimeFrom,
+                pickupTimeTo: req.body.pickupTimeTo,
+                images: req.files ? req.files.map(file => file.path) : []
+            };
+        } else if (req.body.type === 'money') {
+            donation.moneyDetails = {
+                amount: req.body.amount,
+                currency: 'INR'
+            };
+        }
 
         await donation.save();
 
+        // Update user's donations array
+        await User.findByIdAndUpdate(
+            req.user.id,
+            { $push: { donations: donation._id } }
+        );
+
         res.status(201).json(donation);
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // Get all donations (with filters)
-router.get('/', auth, async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        const { type, status, ngo } = req.query;
-        const filter = {};
+        const { type, status, sort } = req.query;
+        let query = {};
 
-        if (type) filter.type = type;
-        if (status) filter.status = status;
-        if (ngo) filter.assignedNGO = ngo;
+        if (type) query.type = type;
+        if (status) query.status = status;
 
-        // If user is NGO, show only nearby donations
-        if (req.user.role === 'ngo') {
-            // Add location-based filtering here
-        }
+        let donations = await Donation.find(query)
+            .populate('donor', 'name email')
+            .populate('assignedNGO', 'name')
+            .sort(sort === 'latest' ? '-createdAt' : 'createdAt');
 
-        const donations = await Donation.find(filter)
-            .populate('donor', 'fullName email')
-            .populate('assignedNGO', 'fullName')
+        res.json(donations);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get user's donations
+router.get('/my-donations', auth, async (req, res) => {
+    try {
+        const donations = await Donation.find({ donor: req.user.id })
+            .populate('assignedNGO', 'name')
             .sort('-createdAt');
 
         res.json(donations);
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
 // Get donation by ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', async (req, res) => {
     try {
         const donation = await Donation.findById(req.params.id)
-            .populate('donor', 'fullName email')
-            .populate('assignedNGO', 'fullName');
+            .populate('donor', 'name email')
+            .populate('assignedNGO', 'name');
 
         if (!donation) {
             return res.status(404).json({ message: 'Donation not found' });
         }
 
         res.json(donation);
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-// Update donation status (NGO only)
+// Update donation status
 router.patch('/:id/status', auth, async (req, res) => {
     try {
-        const { status, message } = req.body;
-        
-        if (req.user.role !== 'ngo') {
-            return res.status(403).json({ message: 'Not authorized' });
-        }
-
         const donation = await Donation.findById(req.params.id);
-        
         if (!donation) {
             return res.status(404).json({ message: 'Donation not found' });
         }
 
-        donation.status = status;
-        donation.assignedNGO = req.user.id;
-        donation.statusUpdates.push({
-            status,
-            message,
-            updatedBy: req.user.id
-        });
-        donation.updatedAt = Date.now();
+        donation.status = req.body.status;
+        if (req.body.impact) {
+            donation.impact = req.body.impact;
+        }
 
         await donation.save();
-
-        // Send notification to donor
-        await sendNotification(donation.donor, {
-            title: 'Donation Status Update',
-            message: `Your donation (${donation._id}) status has been updated to ${status}`
-        });
-
         res.json(donation);
-    } catch (err) {
-        console.error(err);
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

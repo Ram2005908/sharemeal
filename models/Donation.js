@@ -11,35 +11,47 @@ const donationSchema = new mongoose.Schema({
         enum: ['food', 'money'],
         required: true
     },
-    // For food donations
-    foodType: String,
-    quantity: Number,
-    unit: String,
-    expiryDate: Date,
-    pickupLocation: String,
-    pickupTimeFrom: Date,
-    pickupTimeTo: Date,
-    images: [String],
-    
-    // For money donations
-    amount: Number,
-    paymentMethod: String,
-    paymentStatus: {
-        type: String,
-        enum: ['pending', 'completed', 'failed'],
-        default: 'pending'
-    },
-    
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'],
+        enum: ['pending', 'accepted', 'completed', 'cancelled'],
         default: 'pending'
     },
+    // For food donations
+    foodDetails: {
+        foodType: String,
+        quantity: Number,
+        unit: String,
+        expiryDate: Date,
+        images: [String],
+        pickupLocation: String,
+        pickupTimeFrom: Date,
+        pickupTimeTo: Date
+    },
+    // For money donations
+    moneyDetails: {
+        amount: Number,
+        currency: {
+            type: String,
+            default: 'INR'
+        },
+        paymentStatus: {
+            type: String,
+            enum: ['pending', 'completed', 'failed'],
+            default: 'pending'
+        },
+        transactionId: String
+    },
+    assignedNGO: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     description: String,
-    createdAt: {
-        type: Date,
-        default: Date.now
+    impact: {
+        peopleHelped: Number,
+        mealsProvided: Number
     }
+}, {
+    timestamps: true
 });
 
 // Index for geospatial queries
