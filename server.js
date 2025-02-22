@@ -3,8 +3,20 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
+// Import routes
+const authRoutes = require('./routes/auth');
+const donationRoutes = require('./routes/donations');
+const ngoRoutes = require('./routes/ngos');
+const paymentRoutes = require('./routes/payment');
+
 // Load environment variables
 dotenv.config();
+
+// Verify Stripe keys are loaded
+if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_PUBLIC_KEY) {
+    console.error('Stripe keys are not properly configured in .env file');
+    process.exit(1);
+}
 
 // Create Express app
 const app = express();
@@ -12,6 +24,9 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
+
+// Add this near your other middleware
+app.use('/uploads', express.static('uploads'));
 
 // MongoDB Connection
 mongoose
@@ -35,9 +50,15 @@ mongoose.connection.on('disconnected', () => {
     console.log('Mongoose disconnected from MongoDB');
 });
 
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/donations', donationRoutes);
+app.use('/api/ngos', ngoRoutes);
+app.use('/api/payment', paymentRoutes);
+
 // Basic route for testing
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.send("ShareMeal API is running...");
 });
 
 // Error handling middleware

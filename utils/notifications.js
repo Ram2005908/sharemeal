@@ -64,4 +64,22 @@ class NotificationService {
     }
 }
 
-module.exports = NotificationService; 
+const sendNotification = async (userId, notification) => {
+    try {
+        // For now, just log the notification
+        console.log('Notification sent to user:', userId);
+        console.log('Notification content:', notification);
+        
+        // In the future, implement actual notification sending
+        // This could be email, SMS, push notification, etc.
+        return true;
+    } catch (error) {
+        console.error('Notification error:', error);
+        return false;
+    }
+};
+
+module.exports = {
+    NotificationService,
+    sendNotification
+}; 

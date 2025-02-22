@@ -1,5 +1,7 @@
-const router = require('express').Router();
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const express = require('express');
+const router = express.Router();
+const razorpay = require('../utils/razorpay');
+const crypto = require('crypto');
 const auth = require('../middleware/auth');
 const Payment = require('../models/Payment');
 const ReceiptGenerator = require('../utils/receipt');
@@ -7,49 +9,51 @@ const path = require('path');
 const NotificationService = require('../utils/notifications');
 const User = require('../models/User');
 
-// Create payment intent
-router.post('/create-intent', auth, async (req, res) => {
+// Create order
+router.post('/create-order', async (req, res) => {
     try {
-        const { amount, currency } = req.body;
+        const { amount } = req.body;
+        const options = {
+            amount: amount * 100, // amount in smallest currency unit (paise)
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`
+        };
 
-        const paymentIntent = await stripe.paymentIntents.create({
-            amount: amount * 100, // Convert to cents
-            currency,
-            metadata: {
-                userId: req.user.userId
-            }
-        });
-
+        const order = await razorpay.orders.create(options);
         res.json({
-            clientSecret: paymentIntent.client_secret
+            success: true,
+            order
         });
     } catch (error) {
-        console.error('Payment intent error:', error);
-        res.status(500).json({ message: 'Failed to create payment intent' });
+        console.error('Error creating order:', error);
+        res.status(500).json({ message: 'Something went wrong' });
     }
 });
 
-// Payment webhook
-router.post('/webhook', async (req, res) => {
-    const sig = req.headers['stripe-signature'];
-    let event;
-
+// Verify payment
+router.post('/verify-payment', async (req, res) => {
     try {
-        event = stripe.webhooks.constructEvent(
-            req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
-        );
-    } catch (err) {
-        return res.status(400).send(`Webhook Error: ${err.message}`);
-    }
+        const {
+            razorpay_order_id,
+            razorpay_payment_id,
+            razorpay_signature
+        } = req.body;
 
-    if (event.type === 'payment_intent.succeeded') {
-        const paymentIntent = event.data.object;
-        await handleSuccessfulPayment(paymentIntent);
-    }
+        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSign = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+            .update(sign.toString())
+            .digest("hex");
 
-    res.json({ received: true });
+        if (razorpay_signature === expectedSign) {
+            res.json({ success: true, message: "Payment verified successfully" });
+        } else {
+            res.status(400).json({ success: false, message: "Invalid signature" });
+        }
+    } catch (error) {
+        console.error('Error verifying payment:', error);
+        res.status(500).json({ message: 'Something went wrong' });
+    }
 });
 
 // Get payment history
