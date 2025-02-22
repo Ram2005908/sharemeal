@@ -196,6 +196,7 @@ class ShareMealChatbot {
         const badge = this.chatToggle.querySelector('.badge');
         badge.style.display = 'block';
     }
+    
 }
 
 // Initialize chatbot when DOM is loaded

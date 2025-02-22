@@ -20,7 +20,8 @@
 
 .auth-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 30px;
+    padding-top: 20px;
 }
 
 .auth-header h2 {
@@ -66,4 +67,19 @@
 
 .input-group .btn-outline-secondary:hover {
     background-color: #f8f9fa;
+}
+
+.auth-logo {
+    width: 220px;
+    height: 180px;
+    object-fit: contain;
+    margin-bottom: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .auth-logo {
+        width: 180px;
+        height: 150px;
+    }
 } 
