@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
+const net = require('net');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -65,14 +66,53 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const findAvailablePort = async (startPort) => {
+    const isPortAvailable = (port) => {
+        return new Promise((resolve) => {
+            const server = net.createServer();
+            
+            server.once('error', () => {
+                resolve(false);
+            });
+            
+            server.once('listening', () => {
+                server.close();
+                resolve(true);
+            });
+            
+            server.listen(port);
+        });
+    };
+    
+    let port = startPort;
+    while (!(await isPortAvailable(port))) {
+        port++;
+    }
+    return port;
+};
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-    mongoose.connection.close(() => {
-        console.log('MongoDB connection closed through app termination');
-        process.exit(0);
-    });
-});
+// Update server startup
+const startServer = async () => {
+    try {
+        await mongoose.connect(process.env.MONGODB_URI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        });
+        console.log('MongoDB Connected Successfully');
+        
+        mongoose.set('strictQuery', false);
+
+        const desiredPort = process.env.PORT || 3000;
+        const availablePort = await findAvailablePort(desiredPort);
+        
+        app.listen(availablePort, () => {
+            console.log(`Server running on port ${availablePort}`);
+        });
+
+    } catch (error) {
+        console.error('Startup error:', error);
+        process.exit(1);
+    }
+};
+
+startServer();
