@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <a class="nav-link" href="index.html">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">About</a>
+                        <a class="nav-link" href="about.html">About</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="donate.html">Donate</a>
@@ -30,10 +30,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         <a class="nav-link" href="find-ngo.html">Find NGOs</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Disaster Relief</a>
+                        <a class="nav-link" href="disaster-relief.html">Disaster Relief</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Contact</a>
+                        <a class="nav-link" href="contact.html">Contact</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="login.html">Login</a>

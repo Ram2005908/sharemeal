@@ -88,4 +88,28 @@
     .btn-group {
         width: 100%;
     }
+}
+
+.content-padding {
+    padding-top: 100px;  /* Adjust this value based on your navbar height */
+}
+
+.disaster-hero {
+    background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('disaster-bg.jpg');
+    background-size: cover;
+    background-position: center;
+    color: white;
+    padding: 80px 0;
+}
+
+.active-relief-section {
+    padding: 80px 0;
+    background: #f8f9fa;
+}
+
+.relief-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
 } 

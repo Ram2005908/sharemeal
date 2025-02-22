@@ -1,0 +1,125 @@
+.about-hero {
+    padding: 120px 0 80px;
+    background-color: #f8f9fa;
+}
+
+.about-hero h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+
+.about-hero .lead {
+    font-size: 1.5rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+}
+
+.impact-section {
+    padding: 80px 0;
+    background-color: white;
+}
+
+.impact-card {
+    text-align: center;
+    padding: 2rem;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+.impact-card:hover {
+    transform: translateY(-5px);
+}
+
+.impact-icon {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.impact-card h3 {
+    font-size: 2.5rem;
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.team-section {
+    padding: 80px 0;
+    background-color: #f8f9fa;
+}
+
+.team-card {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+}
+
+.team-img {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin-bottom: 1.5rem;
+    object-fit: cover;
+}
+
+.team-card h4 {
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+.team-card .position {
+    color: var(--primary-color);
+    font-weight: 500;
+    margin-bottom: 1rem;
+}
+
+.values-section {
+    padding: 80px 0;
+    background-color: white;
+}
+
+.value-card {
+    text-align: center;
+    padding: 2rem;
+    height: 100%;
+}
+
+.value-card i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.value-card h4 {
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+.join-section {
+    padding: 80px 0;
+    background-color: #f8f9fa;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .about-hero {
+        padding: 100px 0 60px;
+        text-align: center;
+    }
+
+    .about-hero h1 {
+        font-size: 2.5rem;
+    }
+
+    .about-hero img {
+        margin-top: 2rem;
+    }
+
+    .impact-card, .team-card {
+        margin-bottom: 1.5rem;
+    }
+} 
